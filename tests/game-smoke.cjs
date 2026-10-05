@@ -1,0 +1,20 @@
+const fs=require('fs'),vm=require('vm'),assert=require('assert');
+const elements={};const context=new Proxy({},{get:()=>()=>{}});const get=s=>elements[s]??={style:{},textContent:'',innerHTML:'',setAttribute(){},addEventListener(){},getContext:()=>context};
+const sandbox={document:{querySelector:get},localStorage:{getItem:()=>null,setItem(){}},window:{},addEventListener(){},requestAnimationFrame(){},Math,console};vm.createContext(sandbox);vm.runInContext(fs.readFileSync(require('path').join(__dirname,'../game.js'),'utf8'),sandbox);
+vm.runInContext(`
+start(); if(mode!=='playing'||bricks.length!==60)throw Error('start');
+ball.x=bricks[0].x+20;ball.y=bricks[0].y-8;ball.vx=0;ball.vy=5;update(1);if(bricks[0].alive||score!==50||ball.vy>=0)throw Error('brick collision');
+ball.x=paddle.x+60;ball.y=paddle.y-8;ball.vy=5;update(1);if(ball.vy>=0)throw Error('paddle collision');
+pause();let y=ball.y;update(1);if(ball.y!==y||mode!=='paused')throw Error('pause');pause();
+ball.y=550;ball.vy=5;update(1);if(lives!==2||mode!=='serve')throw Error('life');
+launch();bricks.forEach(b=>b.alive=false);update(1);if(stage!==2||bricks.length!==60||mode!=='serve')throw Error('stage');
+lives=1;launch();ball.y=550;ball.vy=5;update(1);if(mode!=='over')throw Error('game over');
+start();if(lives!==3||score!==0||stage!==1)throw Error('restart');
+const check=(v,m)=>{if(!v)throw Error(m)};
+const oldRandom=Math.random;Math.random=()=>.1;dropGift(bricks[0]);check(gifts.length===1,'random drop');Math.random=()=>.9;dropGift(bricks[0]);check(gifts.length===1,'no drop');Math.random=oldRandom;
+gifts=[{x:paddle.x+60,y:paddle.y-14,size:40,type:'wide'}];updateBonuses(1);check(paddle.w===180&&gifts.length===0,'collect wide');effects.wide=1;updateBonuses(1);check(paddle.w===120,'wide expires');
+const v=ball.vy;collectGift('slow');check(Math.abs(ball.vy-v*.7)<.0001,'slow');collectGift('slow');check(Math.abs(ball.vy-v*.7)<.0001,'slow refresh');effects.slow=1;updateBonuses(1);check(Math.abs(ball.vy-v)<.0001,'slow expires');
+collectGift('shield');ball.x=20;ball.y=H-19-ball.r-1;ball.vy=5;update(1);check(ball.vy<0&&effects.shield===0&&lives===3,'shield saves once');
+collectGift('wide');pause();const remaining=effects.wide;update(2);check(effects.wide===remaining,'pause freezes timer');pause();
+gifts=[{x:10,y:H+30,size:40,type:'wide'}];updateBonuses(1);check(!gifts.length,'missed gift');serve();check(paddle.w===120&&giftTypes.every(t=>!effects[t]),'life reset');draw(1);
+`,sandbox);console.log('PASS: start, brick collision, paddle bounce, pause, life loss, next stage, game over, restart, render, random gifts, collection, effect refresh and expiration, shield, pause timers, cleanup');
