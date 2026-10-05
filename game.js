@@ -1,5 +1,6 @@
 'use strict';
 const canvas=document.querySelector('#game'),ctx=canvas.getContext('2d');
+const SOUND_ICON='<svg class="sound-icon" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M10 18V4l8 3v5l-8-3" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><ellipse cx="6.5" cy="18" rx="3.5" ry="2.5" fill="currentColor"/><path class="sound-slash" d="M3 3L21 21" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>';
 const $=s=>document.querySelector(s),W=900,H=540,colors=['#92665e','#9a7561','#9a8667','#7d886e','#6c8586'];
 let best=0;try{best=Number(localStorage.getItem('brick-best'))||0}catch{}
 let score=0,stage=1,lives=3,mode='ready',bricks=[],particles=[],effects={wide:0,slow:0,shield:0},keys={},sound=true,audio,paddle={x:390,y:488,w:120,h:12},ball={x:450,y:477,r:7,vx:3,vy:-5},last=0;
@@ -25,7 +26,7 @@ async function beep(freq){
   o.type='square';o.frequency.setValueAtTime(freq,now);
   g.gain.setValueAtTime(0,now);g.gain.linearRampToValueAtTime(.06,now+.005);g.gain.exponentialRampToValueAtTime(.001,now+.12);
   o.connect(g);g.connect(audio.destination);o.onended=()=>{o.disconnect();g.disconnect()};o.start(now);o.stop(now+.13);
- }catch(error){sound=false;$('#sound').setAttribute('aria-pressed','false');$('#sound').innerHTML='♪ <span>SOUND UNAVAILABLE</span>';$('#sound').title='브라우저의 오디오 권한과 지원 여부를 확인해 주세요';console.warn('Audio playback unavailable',error)}
+ }catch(error){setSound(false);$('#sound').innerHTML=SOUND_ICON+' <span>SOUND UNAVAILABLE</span>';$('#sound').setAttribute('aria-label','사운드 사용 불가');$('#sound').title='브라우저의 오디오 권한과 지원 여부를 확인해 주세요';console.warn('Audio playback unavailable',error)}
 }
 function start(){setSound(true);score=0;stage=1;lives=3;particles=[];layout();serve();$('#overlay').style.display='none';launch()}
 const giftTypes=['wide','slow','shield'];
@@ -84,7 +85,7 @@ if(ball.y>H+ball.r){lives--;beep(110);if(!lives)finish();else serve();break}if(b
 }
 function draw(dt){ctx.fillStyle='#090d13';ctx.fillRect(0,0,W,H);ctx.strokeStyle='#17202b';ctx.lineWidth=1;for(let x=0;x<W;x+=30){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke()}for(let y=0;y<H;y+=30){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke()}for(const b of bricks){if(!b.alive)continue;ctx.globalAlpha=mode==='ready'?.55:1;drawBrick(b);}ctx.globalAlpha=1;drawShield();ctx.shadowBlur=0;ctx.fillStyle='#8fa89f';ctx.fillRect(paddle.x,paddle.y,paddle.w,paddle.h);ctx.fillStyle='#b0bfb0';ctx.fillRect(paddle.x+2,paddle.y+1,paddle.w-4,2);ctx.fillStyle='#d1c6b5';ctx.beginPath();ctx.arc(ball.x,ball.y,ball.r,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;if(mode!=='paused')particles=particles.filter(p=>{p.x+=p.vx*dt;p.y+=p.vy*dt;p.life-=dt;ctx.globalAlpha=Math.max(0,p.life/30);ctx.fillStyle=p.color;ctx.fillRect(p.x,p.y,3,3);return p.life>0});ctx.globalAlpha=1;if(mode==='paused'||mode==='serve'){ctx.textAlign='center';ctx.fillStyle='#a8b89b';ctx.font='16px monospace';ctx.fillText(mode==='paused'?'PAUSED — PRESS P':'PRESS SPACE / TAP TO LAUNCH',W/2,350)}}
 function frame(t){const dt=Math.min(2,(t-last)/16.667||1);last=t;update(dt);draw(dt);requestAnimationFrame(frame)}
-function setSound(enabled){sound=enabled;$('#sound').setAttribute('aria-pressed',String(sound));$('#sound').innerHTML=`♪ <span>SOUND ${sound?'ON':'OFF'}</span>`;$('#sound').title=sound?'사운드 끄기':'사운드 켜기'}
+function setSound(enabled){sound=enabled;$('#sound').setAttribute('aria-pressed',String(sound));$('#sound').innerHTML=SOUND_ICON+` <span>SOUND ${sound?'ON':'OFF'}</span>`;$('#sound').setAttribute('aria-label',sound?'사운드 켜짐 — 누르면 음소거':'사운드 꺼짐 — 누르면 켜기');$('#sound').title=sound?'사운드 끄기':'사운드 켜기'}
 $('#start').onclick=start;$('#pause').onclick=pause;$('#reset').onclick=()=>{start();mode='serve';hud()};$('#sound').onclick=()=>{setSound(!sound);beep(440)};
 addEventListener('keydown',e=>{if(['ArrowLeft','ArrowRight','Space'].includes(e.code))e.preventDefault();keys[e.key]=true;if(e.repeat)return;if(e.code==='Space'){if(mode==='ready'||mode==='over')start();else if(mode==='paused')pause();else launch()}if(e.key.toLowerCase()==='p')pause()});addEventListener('keyup',e=>keys[e.key]=false);addEventListener('blur',()=>{keys={};if(mode==='playing')pause()});
 canvas.addEventListener('pointermove',e=>{const r=canvas.getBoundingClientRect();paddle.x=Math.max(0,Math.min(W-paddle.w,(e.clientX-r.left)*W/r.width-paddle.w/2))});canvas.addEventListener('pointerdown',e=>{canvas.setPointerCapture(e.pointerId);const r=canvas.getBoundingClientRect();paddle.x=Math.max(0,Math.min(W-paddle.w,(e.clientX-r.left)*W/r.width-paddle.w/2));launch()});setSound(true);layout();hud();requestAnimationFrame(frame);
