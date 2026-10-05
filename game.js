@@ -55,9 +55,21 @@ function drawBrick(b){
  for(let i=0;i<16;i++){const x=b.x+5+(seed+i*17)%(b.w-10),y=b.y+5+(seed+i*11)%(b.h-9);ctx.fillStyle=i%2?'#30271f38':'#dac2a329';ctx.fillRect(x,y,i%3+1,1)}
  ctx.strokeStyle='#44342d55';ctx.beginPath();ctx.moveTo(b.x+15,b.y+5);ctx.lineTo(b.x+18,b.y+8);ctx.lineTo(b.x+17,b.y+12);ctx.stroke();
  if(b.bonus){
-  ctx.strokeStyle='#b4baa7';ctx.strokeRect(b.x+.5,b.y+.5,b.w-1,b.h-1);
-  ctx.fillStyle='#363c3c';ctx.fillRect(b.x+b.w/2-9,b.y+2,18,b.h-4);
-  ctx.textAlign='center';ctx.fillStyle='#d1c6b5';ctx.font='bold 14px monospace';ctx.fillText({wide:'W',slow:'S',shield:'G'}[b.bonus],b.x+b.w/2,b.y+15);
+  ctx.save();ctx.globalAlpha=1;
+  const accent={wide:'#9cbaad',slow:'#aaa4c0',shield:'#bea381'}[b.bonus];
+  ctx.fillStyle={wide:'#344c45',slow:'#464156',shield:'#504334'}[b.bonus];ctx.fillRect(b.x,b.y,b.w,b.h);
+  ctx.strokeStyle=accent;ctx.lineWidth=2;ctx.strokeRect(b.x+1,b.y+1,b.w-2,b.h-2);
+  // Solid corner tabs and an icon distinguish rewards even without reading a letter.
+  ctx.fillStyle=accent;ctx.fillRect(b.x,b.y,5,b.h);ctx.fillRect(b.x+b.w-5,b.y,5,b.h);
+  const x=b.x+17,y=b.y+9;ctx.beginPath();
+  if(b.bonus==='wide'){
+   ctx.moveTo(x-6,y);ctx.lineTo(x+6,y);ctx.moveTo(x-2,y-4);ctx.lineTo(x-6,y);ctx.lineTo(x-2,y+4);ctx.moveTo(x+2,y-4);ctx.lineTo(x+6,y);ctx.lineTo(x+2,y+4);
+  }else if(b.bonus==='slow'){
+   ctx.moveTo(x-5,y-5);ctx.lineTo(x+5,y-5);ctx.lineTo(x-5,y+5);ctx.lineTo(x+5,y+5);ctx.lineTo(x-5,y-5);
+  }else{
+   ctx.moveTo(x,y-6);ctx.lineTo(x+6,y-3);ctx.lineTo(x+5,y+2);ctx.lineTo(x,y+6);ctx.lineTo(x-5,y+2);ctx.lineTo(x-6,y-3);ctx.closePath();
+  }
+  ctx.stroke();ctx.textAlign='center';ctx.fillStyle=accent;ctx.font='bold 16px monospace';ctx.fillText({wide:'W',slow:'S',shield:'G'}[b.bonus],b.x+42,b.y+15);ctx.restore();
  }
 }
 function launch(){if(mode==='serve'){mode='playing';beep(440);hud()}}
